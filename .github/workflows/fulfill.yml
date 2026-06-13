@@ -1,0 +1,29 @@
+name: Fulfill license orders
+on:
+  issues:
+    types: [opened, edited]
+permissions:
+  issues: write
+  contents: write
+jobs:
+  fulfill:
+    if: contains(github.event.issue.body, '0x') || contains(github.event.issue.title, 'license') || contains(github.event.issue.title, 'License')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify payment and issue license
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LICENSE_PRIVATE_JWK: ${{ secrets.LICENSE_PRIVATE_JWK }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          REPO: ${{ github.repository }}
+          WALLET: "0xe339997037C7e1C81829fA3e110d3e82B4bDd48E"
+          CHAIN_RPC: "https://mainnet.base.org"
+          USDC_ADDR: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+          USDC_DECIMALS: "6"
+          PRICE_USDC: "9"
+        run: node scripts/fulfill-action.mjs

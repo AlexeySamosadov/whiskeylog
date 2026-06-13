@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>WhiskeyLog — whisky tasting journal & collection tracker (free, offline)</title>
+<meta name="description" content="A whisky tasting journal & collection tracker for enthusiasts. Log bottles (distillery, region, age, ABV, price), record nose/palate/finish tasting notes with a 100-point score, and see your collection value & average rating. Works offline on your phone, private, free." />
+<link rel="canonical" href="https://alexeysamosadov.github.io/whiskeylog/" />
+<meta property="og:title" content="WhiskeyLog — whisky tasting journal & collection tracker" />
+<meta property="og:description" content="Log bottles and tasting notes (nose, palate, finish, 100-point score). See collection value and average rating. Offline, private, free." />
+<meta property="og:type" content="website" />
+<style>
+  :root{ --bg:#181410; --surface:#221b13; --surface2:#2c2418; --line:#3d3320; --txt:#f4ecdb; --mut:#b7a785; --amber:#d98a2b; --amber2:#f0b14d; --good:#8fd17a; --bad:#ff8f6b; --gold:#e8c45a; }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--txt);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+  header{display:flex;align-items:center;gap:10px;padding:14px 18px;max-width:600px;margin:0 auto;position:sticky;top:0;background:var(--bg);z-index:10}
+  .logo{font-weight:800;letter-spacing:-.4px}.logo b{color:var(--amber2)}
+  .grow{flex:1}
+  .pill{font-size:13px;color:var(--mut);border:1px solid var(--line);border-radius:99px;padding:6px 12px;cursor:pointer;background:var(--surface)}
+  .pill.pro{color:#181410;background:var(--amber2);border-color:var(--amber2);font-weight:700}
+  main{max-width:600px;margin:0 auto;padding:6px 18px 100px}
+  h1.hero{font-size:21px;margin:6px 0 2px}
+  .sub{color:var(--mut);font-size:14px;margin:0 0 16px}
+  button{font:inherit;color:var(--txt);background:var(--surface2);border:1px solid var(--line);border-radius:14px;padding:12px 16px;cursor:pointer}
+  button:hover{border-color:var(--amber2)}
+  button.primary{background:var(--amber);color:#181410;border-color:var(--amber);font-weight:800}
+  .fab{position:fixed;right:18px;bottom:18px;z-index:20}
+  .fab button{box-shadow:0 8px 24px rgba(0,0,0,.4);font-size:16px;padding:15px 20px}
+  /* stats summary */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:0 0 16px}
+  .stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:11px 10px;text-align:center}
+  .stat .n{font-size:20px;font-weight:800;color:var(--amber2);line-height:1.1}
+  .stat .l{font-size:11px;color:var(--mut);margin-top:3px;text-transform:uppercase;letter-spacing:.3px}
+  .filters{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 14px}
+  .chip{font-size:13px;color:var(--mut);border:1px solid var(--line);border-radius:99px;padding:5px 12px;cursor:pointer;background:var(--surface);user-select:none}
+  .chip.sel{background:var(--amber);color:#181410;border-color:var(--amber);font-weight:700}
+  /* bottle card */
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:15px 16px;margin-bottom:11px;cursor:pointer;display:flex;align-items:center;gap:12px}
+  .card .ic{width:44px;height:44px;border-radius:12px;background:var(--surface2);display:grid;place-items:center;font-size:21px;flex:none}
+  .card .body{flex:1;min-width:0}
+  .card .name{font-weight:700;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .card .meta{color:var(--mut);font-size:13px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .score{font-size:15px;font-weight:800;border-radius:10px;padding:5px 9px;flex:none;min-width:42px;text-align:center}
+  .score.s90{color:#181410;background:var(--gold)} .score.s85{color:var(--gold);background:rgba(232,196,90,.13)}
+  .score.s70{color:var(--mut);background:var(--surface2)} .score.none{color:var(--mut);background:var(--surface2);font-weight:600;font-size:12px}
+  .status{font-size:11px;font-weight:700;border-radius:99px;padding:3px 9px;text-transform:uppercase;letter-spacing:.3px;flex:none}
+  .status.sealed{color:var(--mut);background:var(--surface2)}
+  .status.open{color:var(--good);background:rgba(143,209,122,.13)}
+  .status.finished{color:var(--bad);background:rgba(255,143,107,.12)}
+  .empty{color:var(--mut);text-align:center;padding:34px 10px}
+  /* bottle detail */
+  .detail-head{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+  .detail-head .dist{color:var(--amber2);font-weight:700;font-size:14px}
+  .detail-head h2{margin:3px 0 8px;font-size:20px}
+  .kv{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 14px;margin-top:10px}
+  .kv .k{color:var(--mut);font-size:12px}
+  .kv .v{font-size:15px;font-weight:600}
+  .hl{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+  /* tasting note */
+  .note{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:13px 15px;margin-bottom:10px}
+  .note .nh{display:flex;align-items:center;gap:10px}
+  .note .nd{font-weight:700;color:var(--amber2);flex:1}
+  .note .npart{margin-top:8px;font-size:14px}
+  .note .npart b{color:var(--mut);font-weight:600;display:block;font-size:12px;text-transform:uppercase;letter-spacing:.3px}
+  .note .npart span{white-space:pre-wrap}
+  .back{color:var(--mut);background:transparent;border:0;padding:6px 0;cursor:pointer;font-size:15px}
+  .linkbtn{color:var(--mut);background:transparent;border:0;cursor:pointer;font-size:13px;text-decoration:underline;padding:4px}
+  /* form/modal */
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.66);display:flex;align-items:flex-end;justify-content:center;z-index:50}
+  @media(min-width:600px){.modal-bg{align-items:center}}
+  .modal{background:var(--surface);border:1px solid var(--line);border-radius:20px 20px 0 0;padding:20px;max-width:600px;width:100%;max-height:92vh;overflow:auto}
+  @media(min-width:600px){.modal{border-radius:20px}}
+  .modal h3{margin:0 0 10px}
+  label{font-size:13px;color:var(--mut);display:block;margin:12px 0 5px}
+  input,select,textarea{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:12px;padding:12px;font:inherit}
+  textarea{min-height:58px;resize:vertical}
+  .seg{display:flex;gap:8px;flex-wrap:wrap}
+  .seg .opt{flex:1;min-width:70px;text-align:center;padding:11px 8px;border:1px solid var(--line);border-radius:12px;background:var(--bg);cursor:pointer;font-size:14px}
+  .seg .opt.sel{background:var(--amber);color:#181410;border-color:var(--amber);font-weight:700}
+  .row2{display:flex;gap:10px}.row2>*{flex:1}
+  .row3{display:flex;gap:8px}.row3>*{flex:1}
+  .modrow{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+  .feats{font-size:14px;color:var(--mut);padding-left:18px}.feats li{margin:4px 0}
+  .err{color:var(--bad);font-size:13px;min-height:16px}.ok{color:var(--good);font-size:13px;min-height:16px}
+  .modal input.mono{font:12px/1.4 ui-monospace,Menlo,monospace}
+  /* score slider */
+  .scorewrap{display:flex;align-items:center;gap:12px}
+  .scorewrap input[type=range]{flex:1;accent-color:var(--amber)}
+  .scoreval{font-size:22px;font-weight:800;color:var(--amber2);min-width:46px;text-align:center}
+  /* pro report */
+  .report .rrow{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+  .report .rrow:last-child{border-bottom:0}
+  .report .rk{color:var(--mut)} .report .rv{font-weight:700}
+  .report h4{margin:16px 0 4px;color:var(--amber2);font-size:14px}
+  .lock{color:var(--mut);font-size:12px}
+  footer{max-width:600px;margin:0 auto;color:var(--mut);font-size:12.5px;text-align:center;padding:18px;border-top:1px solid var(--line)}
+  footer a{color:var(--mut)}
+  .toast{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:11px 16px;z-index:60;opacity:0;transition:.25s;font-size:14px}
+  .toast.show{opacity:1}
+  .rowbtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">🥃 <b>Whiskey</b>Log</span>
+  <div class="grow"></div>
+  <button class="pill" onclick="exportCSV()">⤓ Export ✦</button>
+  <span class="pill" id="proPill" onclick="openLicense()">Pro</span>
+</header>
+
+<main id="app"></main>
+
+<div class="fab"><button class="primary" id="fab" onclick="fabAction()">＋</button></div>
+<footer>
+  WhiskeyLog — your tasting journal &amp; collection, kept on your phone, not in a spreadsheet. 100% private &amp; offline, no account.<br>
+  Free for unlimited bottles &amp; tasting notes. ✦ Pro: CSV export, collection value report, tasting stats. Slàinte! 🥃
+</footer>
+<div id="toast" class="toast"></div>
+
+<script>
+const PUBLIC_JWK = {"kty":"EC","x":"ryizqsU_19IuW0I2GuVt7awvddDvpy5t5WeqD_0felo","y":"nIulZnf-eg9u6d3DjU-nN5W-YDZtStXjvZBmDZo_j0Q","crv":"P-256"};
+const PAY = { wallet:"0xe339997037C7e1C81829fA3e110d3e82B4bDd48E", chain:"Base", token:"USDC", price:"9",
+  contact:"https://github.com/AlexeySamosadov/whiskeylog/issues/new" };
+
+const $ = s => document.querySelector(s);
+let S = load() || { bottles:[] };
+let pro = false;
+let view = { name:"home", bottleId:null };
+let filter = "all";
+
+const REGIONS = ["Scotch","Bourbon","Rye","Irish","Japanese","Canadian","Other"];
+const STATUSES = ["sealed","open","finished"];
+
+function load(){ try{ return JSON.parse(localStorage.getItem("whiskeylog")); }catch(e){ return null; } }
+function save(){ localStorage.setItem("whiskeylog", JSON.stringify(S)); }
+const today = () => new Date().toISOString().slice(0,10);
+const fmt = d => { try{ return new Date(d+"T00:00").toLocaleDateString(undefined,{year:"numeric",month:"short",day:"numeric"}); }catch(e){ return d; } };
+function bottle(id){ return S.bottles.find(b=>b.id===id); }
+function notesOf(b){ return (b.notes||[]).slice().sort((a,b2)=>b2.date.localeCompare(a.date)); }
+function lastNote(b){ const n=notesOf(b); return n.length?n[0]:null; }
+function bottleScore(b){ const ns=(b.notes||[]).filter(n=>typeof n.score==="number"); if(!ns.length) return null; return Math.round(ns.reduce((s,n)=>s+n.score,0)/ns.length); }
+function money(n){ return "$"+(Math.round(n*100)/100).toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:2}); }
+function scoreClass(s){ if(s==null) return "none"; if(s>=90) return "s90"; if(s>=85) return "s85"; return "s70"; }
+
+/* ---------- render ---------- */
+function render(){
+  $("#proPill").textContent = pro?"✓ Pro":"Pro"; $("#proPill").classList.toggle("pro",pro);
+  $("#fab").textContent = view.name==="home" ? "＋ Bottle" : "＋ Tasting";
+  view.name==="home" ? renderHome() : renderBottle();
+}
+
+function summary(){
+  const bs=S.bottles; const cnt=bs.length;
+  const byStatus={sealed:0,open:0,finished:0};
+  let totalValue=0, scoreSum=0, scoreCnt=0;
+  bs.forEach(b=>{ byStatus[b.status]=(byStatus[b.status]||0)+1; if(typeof b.price==="number") totalValue+=b.price; const sc=bottleScore(b); if(sc!=null){ scoreSum+=sc; scoreCnt++; } });
+  const avg = scoreCnt? Math.round(scoreSum/scoreCnt) : null;
+  return { cnt, byStatus, totalValue, avg, scoreCnt };
+}
+
+function renderHome(){
+  const sm=summary();
+  let h = `<h1 class="hero">Your collection</h1><p class="sub">Tap a bottle to add tasting notes. Track what you have, what you've opened, and what it's worth.</p>`;
+  h += `<div class="stats">
+    <div class="stat"><div class="n">${sm.cnt}</div><div class="l">Bottles</div></div>
+    <div class="stat"><div class="n">${sm.byStatus.open||0}</div><div class="l">Open</div></div>
+    <div class="stat"><div class="n">${sm.totalValue?money(sm.totalValue):"—"}</div><div class="l">Value</div></div>
+    <div class="stat"><div class="n">${sm.avg!=null?sm.avg:"—"}</div><div class="l">Avg score</div></div>
+  </div>`;
+
+  // filters
+  const counts={all:S.bottles.length};
+  STATUSES.forEach(s=>counts[s]=S.bottles.filter(b=>b.status===s).length);
+  h += `<div class="filters">`;
+  h += `<span class="chip ${filter==="all"?"sel":""}" onclick="setFilter('all')">All ${counts.all}</span>`;
+  STATUSES.forEach(s=>{ if(counts[s]) h += `<span class="chip ${filter===s?"sel":""}" onclick="setFilter('${s}')">${s} ${counts[s]}</span>`; });
+  h += `</div>`;
+
+  let list = S.bottles.slice();
+  if(filter!=="all") list = list.filter(b=>b.status===filter);
+  // sort: open first, then by name
+  list.sort((a,b)=>{ const r={open:0,sealed:1,finished:2}; if(r[a.status]!==r[b.status]) return r[a.status]-r[b.status]; return a.name.localeCompare(b.name); });
+
+  if(!S.bottles.length){ h += `<div class="empty">No bottles yet — tap <b>＋ Bottle</b> to add the first one to your shelf. 🥃</div>`; }
+  else if(!list.length){ h += `<div class="empty">No <b>${esc(filter)}</b> bottles.</div>`; }
+  else {
+    list.forEach(b=>{
+      const sc=bottleScore(b); const n=(b.notes||[]).length;
+      const bits=[]; if(b.region) bits.push(esc(b.region)); if(b.age) bits.push(b.age+"yr"); if(typeof b.abv==="number") bits.push(b.abv+"% ABV");
+      h += `<div class="card" onclick="openBottle('${b.id}')"><div class="ic">🥃</div>
+        <div class="body"><div class="name">${esc(b.name)}</div>
+        <div class="meta">${bits.join(" · ")}${n?(" · "+n+" tasting"+(n>1?"s":"")):""}</div></div>
+        <span class="status ${b.status}">${b.status}</span>
+        <span class="score ${scoreClass(sc)}">${sc!=null?sc:"—"}</span></div>`;
+    });
+  }
+  $("#app").innerHTML = h;
+}
+
+function renderBottle(){
+  const b = bottle(view.bottleId); if(!b){ view.name="home"; return render(); }
+  const sc=bottleScore(b);
+  const kv=[];
+  if(b.distillery) kv.push(["Distillery", esc(b.distillery)]);
+  if(b.region) kv.push(["Region / type", esc(b.region)]);
+  if(b.age) kv.push(["Age", b.age+" years"]);
+  if(typeof b.abv==="number") kv.push(["ABV", b.abv+"%"]);
+  if(typeof b.price==="number") kv.push(["Price paid", money(b.price)]);
+  kv.push(["Status", esc(b.status)]);
+  let h = `<button class="back" onclick="goHome()">‹ Collection</button>
+    <div class="detail-head">
+      ${b.distillery?`<div class="dist">${esc(b.distillery)}</div>`:""}
+      <h2>${esc(b.name)}</h2>
+      <div class="hl"><span class="status ${b.status}">${b.status}</span>${sc!=null?`<span class="score ${scoreClass(sc)}">${sc}</span><span class="lock">avg of ${(b.notes||[]).filter(n=>typeof n.score==="number").length} score(s)</span>`:`<span class="lock">no score yet</span>`}</div>
+      <div class="kv">${kv.map(p=>`<div><div class="k">${p[0]}</div><div class="v">${p[1]}</div></div>`).join("")}</div>
+      <div class="rowbtns"><button class="linkbtn" onclick="editBottle('${b.id}')">Edit bottle</button><button class="linkbtn" onclick="cycleStatus('${b.id}')">Mark ${b.status==="sealed"?"open":(b.status==="open"?"finished":"sealed")}</button><button class="linkbtn" onclick="delBottle('${b.id}')">Delete</button></div>
+    </div>
+    <h1 class="hero" style="font-size:17px">Tasting notes</h1>`;
+  const ns=notesOf(b);
+  if(!ns.length){ h += `<div class="empty">No tasting notes yet — tap <b>＋ Tasting</b> after a dram and record the nose, palate &amp; finish.</div>`; }
+  ns.forEach(n=>{
+    const parts=[];
+    if(n.nose) parts.push(["Nose", n.nose]);
+    if(n.palate) parts.push(["Palate", n.palate]);
+    if(n.finish) parts.push(["Finish", n.finish]);
+    h += `<div class="note"><div class="nh"><div class="nd">${fmt(n.date)}</div>
+      ${typeof n.score==="number"?`<span class="score ${scoreClass(n.score)}">${n.score}</span>`:""}
+      <button class="linkbtn" onclick="delNote('${b.id}','${n.id}')">✕</button></div>
+      ${parts.map(p=>`<div class="npart"><b>${p[0]}</b><span>${esc(p[1])}</span></div>`).join("")}
+      ${n.notes?`<div class="npart"><b>Other</b><span>${esc(n.notes)}</span></div>`:""}</div>`;
+  });
+  $("#app").innerHTML = h;
+}
+
+function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function setFilter(f){ filter=f; render(); }
+function goHome(){ view={name:"home",bottleId:null}; render(); }
+function openBottle(id){ view={name:"bottle",bottleId:id}; render(); }
+function fabAction(){ view.name==="home"? openBottleForm() : openTasting(); }
+
+/* ---------- bottle form ---------- */
+let bf = {};
+function openBottleForm(existing){
+  bf = existing ? Object.assign({}, existing) : { region:"Scotch", status:"sealed" };
+  const editing = !!existing;
+  const segRegion = `<div class="seg" data-key="region">`+REGIONS.map(o=>`<div class="opt${bf.region===o?" sel":""}" onclick="bfPick('region','${o}',this)">${o}</div>`).join("")+`</div>`;
+  const segStatus = `<div class="seg" data-key="status">`+STATUSES.map(o=>`<div class="opt${bf.status===o?" sel":""}" onclick="bfPick('status','${o}',this)">${o}</div>`).join("")+`</div>`;
+  const bg=document.createElement("div"); bg.className="modal-bg"; bg.id="bfBg";
+  bg.innerHTML = `<div class="modal"><h3>${editing?"Edit bottle":"Add bottle"}</h3>
+    <label>Bottle name *</label><input id="bf_name" placeholder="e.g. Lagavulin 16, Buffalo Trace" value="${esc(bf.name||"")}">
+    <label>Distillery / brand</label><input id="bf_dist" placeholder="e.g. Lagavulin" value="${esc(bf.distillery||"")}">
+    <label>Region / type</label>${segRegion}
+    <div class="row3">
+      <div><label>Age (yrs)</label><input id="bf_age" inputmode="numeric" placeholder="16" value="${bf.age!=null?bf.age:""}"></div>
+      <div><label>ABV (%)</label><input id="bf_abv" inputmode="decimal" placeholder="43" value="${bf.abv!=null?bf.abv:""}"></div>
+      <div><label>Price paid</label><input id="bf_price" inputmode="decimal" placeholder="75" value="${bf.price!=null?bf.price:""}"></div>
+    </div>
+    <label>Status</label>${segStatus}
+    <div class="modrow"><button class="primary" onclick="saveBottle(${editing?`'${existing.id}'`:"null"})">${editing?"Save changes":"Add bottle"}</button><button onclick="closeM('bfBg')">Cancel</button></div>
+  </div>`;
+  bg.onclick=e=>{ if(e.target===bg) closeM('bfBg'); };
+  document.body.appendChild(bg);
+}
+function bfPick(key,val,el){ bf[key]=val; el.parentElement.querySelectorAll(".opt").forEach(o=>o.classList.remove("sel")); el.classList.add("sel"); }
+function numOrNull(v){ v=(v||"").trim(); if(v==="") return null; const n=parseFloat(v); return isNaN(n)?null:n; }
+function saveBottle(id){
+  const name=($("#bf_name").value||"").trim();
+  if(!name){ toast("Give the bottle a name"); return; }
+  const data={ name, distillery:($("#bf_dist").value||"").trim(), region:bf.region, status:bf.status,
+    age:numOrNull($("#bf_age").value), abv:numOrNull($("#bf_abv").value), price:numOrNull($("#bf_price").value) };
+  if(id){ const b=bottle(id); Object.assign(b,data); }
+  else { S.bottles.push(Object.assign({ id:"b"+Date.now(), notes:[] }, data)); }
+  save(); closeM('bfBg'); render(); toast(id?"Bottle updated 🥃":"Bottle added 🥃");
+}
+function editBottle(id){ openBottleForm(bottle(id)); }
+function cycleStatus(id){ const b=bottle(id); const order={sealed:"open",open:"finished",finished:"sealed"}; b.status=order[b.status]||"sealed"; save(); render(); toast("Marked "+b.status); }
+function delBottle(id){ const b=bottle(id); if(!confirm("Delete \""+b.name+"\" and all its tasting notes?")) return; S.bottles=S.bottles.filter(x=>x.id!==id); save(); goHome(); toast("Bottle deleted"); }
+
+/* ---------- tasting note form ---------- */
+let tf = {};
+function openTasting(){
+  tf = { date:today(), score:88 };
+  const bg=document.createElement("div"); bg.className="modal-bg"; bg.id="tfBg";
+  bg.innerHTML = `<div class="modal"><h3>New tasting note</h3>
+    <label>Date</label><input type="date" id="tf_date" value="${tf.date}">
+    <label>Nose</label><textarea id="tf_nose" placeholder="Vanilla, dried orchard fruit, a wisp of smoke…"></textarea>
+    <label>Palate</label><textarea id="tf_palate" placeholder="Honey, oak spice, baked apple, gentle pepper…"></textarea>
+    <label>Finish</label><textarea id="tf_finish" placeholder="Long, warming, lingering peat and dark chocolate…"></textarea>
+    <label>Score (out of 100)</label>
+    <div class="scorewrap"><input type="range" id="tf_score" min="50" max="100" value="88" oninput="document.getElementById('tf_scoreval').textContent=this.value"><span class="scoreval" id="tf_scoreval">88</span></div>
+    <label>Other notes (optional)</label><textarea id="tf_notes" placeholder="Glassware, water added, occasion, value for money…"></textarea>
+    <div class="modrow"><button class="primary" onclick="saveTasting()">Save tasting</button><button onclick="closeM('tfBg')">Cancel</button></div>
+  </div>`;
+  bg.onclick=e=>{ if(e.target===bg) closeM('tfBg'); };
+  document.body.appendChild(bg);
+}
+function saveTasting(){
+  const b=bottle(view.bottleId); if(!b) return;
+  if(!b.notes) b.notes=[];
+  const note={ id:"n"+Date.now(), date:$("#tf_date").value||today(),
+    nose:($("#tf_nose").value||"").trim(), palate:($("#tf_palate").value||"").trim(),
+    finish:($("#tf_finish").value||"").trim(), score:parseInt($("#tf_score").value,10),
+    notes:($("#tf_notes").value||"").trim() };
+  b.notes.push(note);
+  if(b.status==="sealed") b.status="open"; // tasting implies it's open
+  save(); closeM('tfBg'); render(); toast("Tasting saved 🥃");
+}
+function delNote(bid,nid){ const b=bottle(bid); if(!b) return; if(!confirm("Delete this tasting note?")) return; b.notes=(b.notes||[]).filter(n=>n.id!==nid); save(); render(); toast("Note deleted"); }
+
+/* ---------- export (Pro) ---------- */
+function exportCSV(){
+  if(!pro) return openLicense();
+  const rows=[["bottle","distillery","region","age_years","abv","price_paid","status","tasting_date","score","nose","palate","finish","other_notes"]];
+  S.bottles.forEach(b=>{
+    const ns=(b.notes||[]);
+    if(!ns.length){ rows.push([b.name,b.distillery,b.region,b.age,b.abv,b.price,b.status,"","","","","",""]); }
+    ns.forEach(n=>rows.push([b.name,b.distillery,b.region,b.age,b.abv,b.price,b.status,n.date,n.score,(n.nose||"").replace(/\n/g," "),(n.palate||"").replace(/\n/g," "),(n.finish||"").replace(/\n/g," "),(n.notes||"").replace(/\n/g," ")]));
+  });
+  const csv=rows.map(r=>r.map(c=>`"${String(c==null?"":c).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob=new Blob([csv],{type:"text/csv"}); const u=URL.createObjectURL(blob);
+  const a=document.createElement("a"); a.href=u; a.download="whiskeylog-collection.csv"; a.click(); setTimeout(()=>URL.revokeObjectURL(u),3000);
+  toast("Collection exported ✓");
+}
+
+/* ---------- Pro: collection value report + tasting stats ---------- */
+function openReport(){
+  if(!pro) return openLicense();
+  if(!S.bottles.length){ toast("Add some bottles first 🥃"); return; }
+  const sm=summary();
+  // value by status
+  const valBy={sealed:0,open:0,finished:0};
+  S.bottles.forEach(b=>{ if(typeof b.price==="number") valBy[b.status]=(valBy[b.status]||0)+b.price; });
+  // top rated
+  const scored=S.bottles.map(b=>({b,sc:bottleScore(b)})).filter(x=>x.sc!=null).sort((a,b)=>b.sc-a.sc);
+  const top=scored.slice(0,5);
+  // by region (avg score + count)
+  const reg={};
+  S.bottles.forEach(b=>{ const r=b.region||"Other"; reg[r]=reg[r]||{cnt:0,sum:0,scnt:0,val:0}; reg[r].cnt++; const sc=bottleScore(b); if(sc!=null){ reg[r].sum+=sc; reg[r].scnt++; } if(typeof b.price==="number") reg[r].val+=b.price; });
+  const regRows=Object.keys(reg).sort((a,b)=>reg[b].cnt-reg[a].cnt).map(r=>{ const o=reg[r]; const avg=o.scnt?Math.round(o.sum/o.scnt):null; return `<div class="rrow"><span class="rk">${esc(r)}</span><span class="rv">${o.cnt} bottle${o.cnt>1?"s":""}${avg!=null?" · avg "+avg:""}${o.val?" · "+money(o.val):""}</span></div>`; }).join("");
+
+  const totalNotes=S.bottles.reduce((s,b)=>s+(b.notes||[]).length,0);
+  const bg=document.createElement("div"); bg.className="modal-bg"; bg.id="repBg";
+  bg.innerHTML = `<div class="modal report"><h3>Collection report</h3>
+    <p class="sub" style="margin:0 0 6px">A snapshot of your shelf — value, scoring and regional breakdown.</p>
+    <h4>Overview</h4>
+    <div class="rrow"><span class="rk">Bottles</span><span class="rv">${sm.cnt}</span></div>
+    <div class="rrow"><span class="rk">Sealed / Open / Finished</span><span class="rv">${sm.byStatus.sealed||0} / ${sm.byStatus.open||0} / ${sm.byStatus.finished||0}</span></div>
+    <div class="rrow"><span class="rk">Tasting notes recorded</span><span class="rv">${totalNotes}</span></div>
+    <div class="rrow"><span class="rk">Average score</span><span class="rv">${sm.avg!=null?sm.avg+" / 100":"—"}</span></div>
+    <h4>Collection value</h4>
+    <div class="rrow"><span class="rk">Total paid</span><span class="rv">${money(sm.totalValue)}</span></div>
+    <div class="rrow"><span class="rk">Sealed (unopened)</span><span class="rv">${money(valBy.sealed)}</span></div>
+    <div class="rrow"><span class="rk">Open</span><span class="rv">${money(valBy.open)}</span></div>
+    ${sm.cnt?`<div class="rrow"><span class="rk">Average per bottle</span><span class="rv">${money(sm.totalValue/sm.cnt)}</span></div>`:""}
+    <h4>Top rated</h4>
+    ${top.length?top.map(x=>`<div class="rrow"><span class="rk">${esc(x.b.name)}</span><span class="rv">${x.sc}</span></div>`).join(""):`<div class="lock">No scored bottles yet.</div>`}
+    <h4>By region / type</h4>
+    ${regRows}
+    <div class="modrow"><button onclick="exportCSV()">⤓ Export CSV</button><button class="primary" onclick="closeM('repBg')">Done</button></div>
+  </div>`;
+  bg.onclick=e=>{ if(e.target===bg) closeM('repBg'); };
+  document.body.appendChild(bg);
+}
+
+/* ---------- licensing (offline ECDSA P-256) ---------- */
+function fromB(s){ s=s.replace(/-/g,"+").replace(/_/g,"/"); while(s.length%4)s+="="; const b=atob(s); const a=new Uint8Array(b.length); for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i); return a; }
+async function verifyLicense(str){ try{ const[p,sg]=str.trim().split("."); if(!p||!sg)return null;
+  const k=await crypto.subtle.importKey("jwk",PUBLIC_JWK,{name:"ECDSA",namedCurve:"P-256"},false,["verify"]);
+  if(!await crypto.subtle.verify({name:"ECDSA",hash:"SHA-256"},k,fromB(sg),fromB(p)))return null;
+  const pl=JSON.parse(new TextDecoder().decode(fromB(p))); if(pl.exp&&Math.floor(Date.now()/1000)>pl.exp)return{expired:true}; return pl; }catch(e){return null;} }
+async function applyLicense(str,silent){ const pl=await verifyLicense(str);
+  if(pl&&!pl.expired&&pl.plan==="pro"){ pro=true; localStorage.setItem("whiskeylog_license",str); if(typeof render==="function")render();
+    if(!silent){ const o=document.querySelector("#licOk"); if(o)o.textContent="Unlocked — thank you"; setTimeout(()=>{const b=document.querySelector("#licBg");if(b)b.remove();},800);} return true; }
+  if(!silent){ const e=document.querySelector("#licErr"); if(e)e.textContent=pl&&pl.expired?"License expired.":"Invalid key."; } return false; }
+function openLicense(){ if(pro){ openReport(); return; }
+  const bg=document.createElement("div"); bg.className="modal-bg"; bg.id="licBg";
+  bg.innerHTML=`<div class="modal"><h3>WhiskeyLog Pro — ${PAY.price} ${PAY.token}</h3>
+    <p class="sub" style="margin:0 0 8px">One-time, lifetime. The journal stays free forever — Pro adds the collection &amp; data extras.</p>
+    <ul class="feats"><li>⤓ Export your whole collection &amp; tasting notes to CSV</li><li>💰 Collection value report (by status &amp; region)</li><li>📊 Tasting stats — top-rated, average score, by region</li></ul>
+    <p style="margin:8px 0 2px"><b>1.</b> Send <b>${PAY.price} ${PAY.token}</b> on <b>${PAY.chain}</b> to:</p>
+    <input class="mono" readonly value="${PAY.wallet}" onclick="this.select()" />
+    <button onclick="navigator.clipboard.writeText('${PAY.wallet}');toast('Address copied')">⧉ Copy address</button>
+    <p style="margin:10px 0 2px"><b>2.</b> Paste your payment tx hash + email and request your key:</p>
+    <input class="mono" id="txh" placeholder="0x… tx hash"/><input class="mono" id="email" placeholder="email"/>
+    <div class="err" id="licErr"></div><div class="ok" id="licOk"></div>
+    <div class="modrow"><button class="primary" onclick="reqKey()">Get my key</button><button onclick="closeM('licBg')">Close</button></div>
+    <details style="margin-top:10px"><summary style="color:var(--mut);cursor:pointer">Have a key?</summary>
+      <input class="mono" id="licKey" placeholder="paste license key"/><button onclick="applyLicense(document.getElementById('licKey').value,false)">Activate</button></details>
+  </div>`;
+  bg.onclick=e=>{ if(e.target===bg) closeM('licBg'); }; document.body.appendChild(bg);
+}
+function reqKey(){ const tx=($("#txh").value||"").trim(), em=($("#email").value||"").trim();
+  const url=PAY.contact+(PAY.contact.includes("?")?"&":"?")+"title="+encodeURIComponent("WhiskeyLog Pro license request")+"&body="+encodeURIComponent("Payment tx hash: "+(tx||"0x...")+"\nEmail: "+em);
+  window.open(url,"_blank"); const o=$("#licOk"); if(o)o.textContent="Opened the request page — your key arrives once payment confirms."; }
+function closeM(id){ const b=document.getElementById(id); if(b)b.remove(); }
+function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),2000); }
+
+/* init */
+render();
+(async()=>{ const s=localStorage.getItem("whiskeylog_license"); if(s) await applyLicense(s,true); })();
+</script>
+</body>
+</html>
