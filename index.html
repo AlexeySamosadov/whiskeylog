@@ -96,6 +96,10 @@
   .lock{color:var(--mut);font-size:12px}
   footer{max-width:600px;margin:0 auto;color:var(--mut);font-size:12.5px;text-align:center;padding:18px;border-top:1px solid var(--line)}
   footer a{color:var(--mut)}
+  .guides{max-width:600px;margin:0 auto;padding:4px 18px 0;text-align:center;font-size:12.5px}
+  .guides .gt{color:var(--amber2);font-weight:700;letter-spacing:.3px;text-transform:uppercase;font-size:11px;margin:0 0 6px}
+  .guides a{color:var(--mut);display:inline-block;margin:3px 8px;white-space:nowrap}
+  .guides a:hover{color:var(--amber2)}
   .toast{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:11px 16px;z-index:60;opacity:0;transition:.25s;font-size:14px}
   .toast.show{opacity:1}
   .rowbtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
@@ -112,6 +116,14 @@
 <main id="app"></main>
 
 <div class="fab"><button class="primary" id="fab" onclick="fabAction()">＋</button></div>
+<nav class="guides" aria-label="Whisky guides">
+  <p class="gt">🥃 Whisky guides</p>
+  <a href="./how-to-taste-whisky.html">How to taste whisky</a>·
+  <a href="./whisky-regions-explained.html">Whisky regions explained</a>·
+  <a href="./what-is-single-malt-whisky.html">What is single malt?</a>·
+  <a href="./how-to-store-whisky.html">How to store whisky</a>·
+  <a href="./whisky-tasting-notes-guide.html">Writing tasting notes</a>
+</nav>
 <footer>
   WhiskeyLog — your tasting journal &amp; collection, kept on your phone, not in a spreadsheet. 100% private &amp; offline, no account.<br>
   Free for unlimited bottles &amp; tasting notes. ✦ Pro: CSV export, collection value report, tasting stats. Slàinte! 🥃
